@@ -34,7 +34,7 @@
     </style>
     <div id="device_setup_wizard" style="width: 100%;" onsubmit="showPacman();">
         <h1 style="font-size: 2em;">Add {% if existing_device %}Keys{% else %}Device{% endif %}</h1><br>
-        <form id="form" action="./" method="POST" class="card center" style="width: auto; margin: 40px;">
+        <form id="form" action="{{ url_for('devices_endpoint.new_device') }}" method="POST" class="card center" style="width: auto; margin: 40px;">
             {% if existing_device %}
                 <input type="hidden" name="existing_device" value="{{ existing_device.alias }}">
             {% endif %}
@@ -52,7 +52,7 @@
                         </label>
                     {% endfor %}
                 </div>
-                <a class="note center" style="text-decoration: underline; cursor: pointer;" href="{{ url_for('devices_endpoint.new_device_manual') }}">Manual cofiguration</a>
+                <a class="note center" style="text-decoration: underline; cursor: pointer;" href="{{ url_for('devices_endpoint.new_device_manual') }}">Manual configuration</a>
 
             </div>
             <div {% if not existing_device %}id="step2-hot-wallet" class="hidden"{% elif existing_device.hot_wallet %}id="step1"{% else %}class="hidden"{% endif %}>
@@ -718,14 +718,21 @@
                                 console.log(str);
                                 if ("keystore" in json) { // ColdCard electrum file
                                     let prefix = "";
-                                    if (("ckcc_xfp" in json.keystore) && ("derivation" in json.keystore)) {
-                                        prefix = "[";
+                                    let fingerprint = "";
+                                    if ("ckcc_xfp" in json.keystore){
                                         let num = json.keystore.ckcc_xfp;
                                         for (let i = 0; i < 4; i++) {
-                                            prefix += ('0' + (num % 256).toString(16)).slice(-2);
+                                            fingerprint += ('0' + (num % 256).toString(16)).slice(-2);
                                             num = num >>> 8;
                                         }
-                                        prefix += json.keystore.derivation.substring(1);
+                                    }
+                                    if ("root_fingerprint" in json.keystore){
+                                        fingerprint = json.keystore.root_fingerprint;
+                                    }
+                                    if ((fingerprint.length > 0) && ("derivation" in json.keystore)) {
+                                        prefix = "[";
+                                        prefix += fingerprint;
+                                        prefix += json.keystore.derivation.substring(1).replace(/'/g,"h");
                                         prefix += "]";
                                     }
                                     let s = prefix + json.keystore.xpub + "\n";
